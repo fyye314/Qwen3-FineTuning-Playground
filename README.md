@@ -60,7 +60,7 @@ Qwen3-FineTuning-Playground/
 ### 1. 克隆并进入项目
 
 ```bash
-git clone https://github.com/your-username/Qwen3-FineTuning-Playground.git
+git clone https://github.com/Muziqinshan/Qwen3-FineTuning-Playground.git
 cd Qwen3-FineTuning-Playground
 ```
 
