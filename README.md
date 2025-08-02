@@ -1,7 +1,7 @@
 # Qwen3 Fine-Tuning Playground
 
 <p align="center">
-    <img src="https://img.shields.io/badge/Python-3.9+-blue.svg" alt="Python 3.9+">
+    <img src="https://img.shields.io/badge/Python-3.10+-blue.svg" alt="Python 3.9+">
     <img src="https://img.shields.io/badge/License-Apache_2.0-orange.svg" alt="License">
     <img src="https://img.shields.io/badge/Hugging_Face-Transformers-yellow" alt="Hugging Face">
     <img src="https://img.shields.io/badge/built_with-love-ff69b4.svg" alt="Built with Love">
@@ -121,9 +121,9 @@ python inference/inference_dirty_sft.py \
 
 我们为每种主流的微调技术都提供了详细的端到端教程，请查阅 `example/` 目录下的文档：
 
--   **[SFT -> RM -> PPO 完整流程教程](./example/README.md)**
--   **[ORPO 单步高效对齐教程](./example/README_ORPO.md)**
--   **[知识蒸馏教程](./example/README_Distillation.md)**
+-   **[SFT -> RM -> PPO 完整流程教程](./example/SFT+RM+PPO/README.md)**
+-   **[ORPO 单步高效对齐教程](./example/ORPO/README_ORPO.md)**
+-   **[知识蒸馏教程](./example/distill/README_Distillation.md)**
 
 ---
 

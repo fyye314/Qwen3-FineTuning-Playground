@@ -17,7 +17,7 @@
     ```bash
     pip install -r ../requirements.txt
     ```
-2.  **准备好基础模型**: 下载一个预训练的基础模型（如 `Qwen/Qwen2-1.5B-Instruct`）并放置在你的模型目录中。
+2.  **准备好基础模型**: 参照项目主 `README.md` 的指引，使用 `modelscope` 下载 `Qwen/Qwen3-1.7B` 模型，模型文件将位于 `./Qwen3/Qwen3-1.7B` 目录下。
 3.  **准备好数据集**: 本教程使用的数据集是 `data/dirty_chinese_dpo.json`。确保这个文件存在于项目根目录的`data`文件夹下。
 
 ---
@@ -32,7 +32,7 @@ SFT是第一步，也是最关键的一步。它为模型注入了我们想要�
 *(请在项目根目录运行此命令)*
 ```bash
 python Supervised_FineTuning/train_sft_dirty.py \
-    --model_path /path/to/your/Qwen2-1.5B-Instruct \
+    --model_path ./Qwen3/Qwen3-1.7B \
     --dataset_path data/dirty_chinese_dpo.json \
     --sft_adapter_output_dir ./output/sft_adapter
 ```
@@ -50,7 +50,7 @@ python Supervised_FineTuning/train_sft_dirty.py \
 *(请在项目根目录运行此命令)*
 ```bash
 python scripts/merge_lora_weights.py \
-    --model_path /path/to/your/Qwen2-1.5B-Instruct \
+    --model_path ./Qwen3/Qwen3-1.7B \
     --adapter_path ./output/sft_adapter \
     --output_path ./output/sft_merged_model
 ```
@@ -105,7 +105,7 @@ python RL_FineTuning/PPO/train_ppo_dirty.py \
 *(请在项目根目录运行此命令)*
 ```bash
 python inference/inference_dirty_sft.py \
-    --model_path /path/to/your/Qwen2-1.5B-Instruct \
+    --model_path ./Qwen3/Qwen3-1.7B \
     --adapter_path ./output/sft_adapter
 ```
 
