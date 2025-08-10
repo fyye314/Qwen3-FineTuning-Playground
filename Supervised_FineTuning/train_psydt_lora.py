@@ -22,57 +22,55 @@ import swanlab
 
 def build_samples_from_messages(messages: List[Dict], tokenizer, max_length: int):
     """
-    将一段多轮对话拆成多个样本（每个 assistant 回合一个样本）。
-    仅对 assistant 的 token 计算 loss，其余位置 mask=-100。
+    使用 Qwen3 对话模板显式构造样本：
+    <|im_start|>system ... <|im_end|>
+    <|im_start|>user ... <|im_end|>
+    <|im_start|>assistant ... <|im_end|>
+    规则：每个 assistant 回合生成 1 个样本；仅对该回合的回复位置计算 loss，其余为 -100。
     """
-    samples = []
+    def render_block(role: str, content: str) -> str:
+        return f"<|im_start|>{role}\n{content}<|im_end|>\n"
 
-    # 取出 system（如果有）
-    system_msgs = [m for m in messages if m["role"] == "system"]
+    # 拆出可选的 system
+    system_msgs = [m for m in messages if m.get("role") == "system"]
     system_content = system_msgs[0]["content"] if len(system_msgs) > 0 else None
 
-    # 对话按顺序
+    # 仅保留 user/assistant，按顺序
     conv = []
     if system_content:
         conv.append({"role": "system", "content": system_content})
-
-    # 从 messages 里顺序读取非 system 的消息
     for m in messages:
-        if m["role"] in ("user", "assistant"):
+        if m.get("role") in ("user", "assistant"):
             conv.append({"role": m["role"], "content": m["content"]})
 
-    # 遍历每个 assistant 回合，构造训练样本
+    samples = []
+
+    # 遍历每个 assistant 回合
     for i, msg in enumerate(conv):
         if msg["role"] != "assistant":
             continue
 
-        # 上下文：到本次 assistant 回合之前的所有消息
+        # 上下文（到本轮 assistant 前）
         context_msgs = conv[:i]
 
-        # 1) 将上下文转换为“生成前缀”
-        context_text = tokenizer.apply_chat_template(
-            context_msgs,
-            tokenize=False,
-            add_generation_prompt=True
-        )
-        context_ids = tokenizer(
-            context_text,
-            add_special_tokens=False
-        )
+        # 显式拼装 instruction（上下文完整块 + 本轮 assistant 头，不含回复）
+        prefix_text = ""
+        for cm in context_msgs:
+            prefix_text += render_block(cm["role"], cm["content"])
+        instruction_text = prefix_text + "<|im_start|>assistant\n"  # 不加 <|im_end|>
 
-        # 2) 将当前 assistant 的回答转为 token，并在末尾加上 <|im_end|>
-        resp_text = msg["content"]
-        resp_ids = tokenizer(resp_text, add_special_tokens=False)
+        # 回复部分（带结尾 <|im_end|>）
+        resp_text = f"{msg['content']}<|im_end|>"
 
-        im_end_id = tokenizer.convert_tokens_to_ids("<|im_end|>")
-        if im_end_id is None:
-            im_end_id = tokenizer.eos_token_id
+        # 分词
+        instruction_part = tokenizer(instruction_text, add_special_tokens=False)
+        response_part = tokenizer(resp_text, add_special_tokens=False)
 
-        input_ids = context_ids["input_ids"] + resp_ids["input_ids"] + [im_end_id]
-        attention_mask = context_ids["attention_mask"] + resp_ids["attention_mask"] + [1]
-        labels = [-100] * len(context_ids["input_ids"]) + resp_ids["input_ids"] + [im_end_id]
+        input_ids = instruction_part["input_ids"] + response_part["input_ids"]
+        attention_mask = instruction_part["attention_mask"] + response_part["attention_mask"]
+        labels = [-100] * len(instruction_part["input_ids"]) + response_part["input_ids"]
 
-        # 长度截断（从左侧截断，保留结尾——即保留回答）
+        # 长度截断（左截断，尽量保留结尾与完整回答）
         if len(input_ids) > max_length:
             input_ids = input_ids[-max_length:]
             attention_mask = attention_mask[-max_length:]
@@ -173,6 +171,8 @@ def main():
         model_path = args.model_local_dir
 
     tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False, trust_remote_code=True)
+    if tokenizer.pad_token_id is None:
+        tokenizer.pad_token = tokenizer.eos_token
     model = AutoModelForCausalLM.from_pretrained(
         model_path,
         device_map="auto",
@@ -269,11 +269,13 @@ def main():
         eval_steps=args.eval_steps,
         gradient_checkpointing=True,
     )
+    # 新增：每个 epoch 结束保存一次 checkpoint
+    kwargs["save_strategy"] = "epoch"
     ta_sig = signature(TrainingArguments.__init__)
     if "evaluation_strategy" in ta_sig.parameters:
-        kwargs["evaluation_strategy"] = strat_val
+        kwargs["evaluation_strategy"] = "epoch" if (args.do_eval and eval_dataset is not None) else "no"
     elif "eval_strategy" in ta_sig.parameters:
-        kwargs["eval_strategy"] = strat_val
+        kwargs["eval_strategy"] = "epoch" if (args.do_eval and eval_dataset is not None) else "no"
     if "save_on_each_node" in ta_sig.parameters:
         kwargs["save_on_each_node"] = True
     if "bf16" in ta_sig.parameters and torch.cuda.is_available():
