@@ -29,7 +29,7 @@ class ScriptArguments:
     lora_r: int = field(default=8, metadata={"help": "LoRA的秩"})
     lora_alpha: int = field(default=16, metadata={"help": "LoRA的alpha"})
     lora_dropout: float = field(default=0.1, metadata={"help": "LoRA的dropout"})
-    use_swanlab: bool = field(default=True, metadata={"help": "是否使用SwanLab记录实验"})
+    use_swanlab: bool = field(default=False, metadata={"help": "是否使用SwanLab记录实验"})
 
 def setup_swanlab(args: ScriptArguments):
     """配置并初始化SwanLab"""
