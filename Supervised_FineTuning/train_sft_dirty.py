@@ -156,7 +156,7 @@ def main():
         num_train_epochs=1,
         logging_steps=10,
         save_strategy="epoch",
-        evaluation_strategy="epoch", # 在每个epoch后进行评估
+        eval_strategy="epoch", # 在每个epoch后进行评估
         gradient_checkpointing=True,
         report_to="swanlab" if args.use_swanlab else "none",
         run_name="sft-training-run-professional",
